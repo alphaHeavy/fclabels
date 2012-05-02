@@ -4,6 +4,7 @@ module Data.Label.PureM
 -- * 'MonadState' lens operations.
   gets
 , puts
+, putsWith
 , modify
 , (=:)
 , (=.)
@@ -28,6 +29,15 @@ gets = M.gets . L.get
 
 puts :: M.MonadState s m => s :-> a -> a -> m ()
 puts l = M.modify . L.set l
+
+-- | Set a value somewhere in the state, pointed to by the specified lens if the predicate is True.
+
+putsWith :: M.MonadState s m => (s :-> a) -> (a -> a -> Bool) -> a -> m ()
+putsWith yourLens predicate value = do
+  s <- gets yourLens
+  case s `predicate` value of
+    True -> puts yourLens value
+    False -> return ()
 
 -- | Modify a value with a function somewhere in the state, pointed to by the
 -- specified lens.

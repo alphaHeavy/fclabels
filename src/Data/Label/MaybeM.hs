@@ -1,9 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 module Data.Label.MaybeM
 (
 -- * 'MonadState' lens operations.
   gets
-
+, putsMaybe
 -- * 'MonadReader' lens operations.
 , asks
 )
@@ -21,6 +22,17 @@ import qualified Data.Label.Maybe     as L
 
 gets :: (M.MonadState f m, MonadPlus m) => (f :~> a) -> m a
 gets l = (L.get l `liftM` M.get) >>= (mzero `maybe` return)
+
+putsMaybe :: forall a m s. M.MonadState s m => (s :~> a) -> a -> m ()
+putsMaybe yourLens value = do
+    M.modify (doSet yourLens value)
+  where
+    doSet :: forall f a. (f :~> a) -> a -> f -> f
+    doSet lens' value current =
+      let result = L.set lens' value current
+      in  case result of
+            Just x -> x
+            Nothing -> error "putsMaybeM returned nothing"
 
 -- | Fetch a value, pointed to by a lens that might fail, out of a reader
 -- environment. When the lens getter fails this computation will fall back to
