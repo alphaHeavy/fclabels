@@ -4,6 +4,7 @@ module Data.Label.MaybeM
 (
 -- * 'MonadState' lens operations.
   gets
+, modify
 , puts
 , putsWith
 -- * 'MonadReader' lens operations.
@@ -23,6 +24,18 @@ import qualified Data.Label.Maybe     as L
 
 gets :: (M.MonadState f m, MonadPlus m) => (f :~> a) -> m a
 gets l = (L.get l `liftM` M.get) >>= (mzero `maybe` return)
+
+modify :: (M.MonadState f m) => (f :~> a) -> (a -> a) -> m ()
+modify yourLens function = do
+    M.modify (doModify yourLens function)
+  where
+    doModify :: forall a f. (f :~> a) -> (a -> a) -> f -> f
+    doModify lens' function current =
+      let result = L.modify lens' (function) current
+      in  case result of
+            Just x -> x
+            Nothing -> error "modify returned nothing"
+
 
 puts :: forall a m s. M.MonadState s m => (s :~> a) -> a -> m ()
 puts yourLens value = do
